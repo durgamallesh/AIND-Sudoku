@@ -1,3 +1,9 @@
+""" Initialize the variables """
+
+import logging
+
+logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=logging.ERROR)
+
 assignments = []
 
 rows = 'ABCDEFGHI'
@@ -11,26 +17,9 @@ unitlist = row_units + column_units + square_units + diag_units
 units = dict((s, [u for u in unitlist if s in u]) for s in boxes)
 peers = dict((s, set(sum(units[s],[]))-set([s])) for s in boxes)
 
-    
-def get_row(box):
-    return [x for x in row_units if box in x][0]
 
 
-def get_col(box):
-    return [x for x in column_units if box in x][0]
-
-def get_squnit(box):
-    return [x for x in square_units if box in x][0]
-
-def assign_value(values, box, value):
-    """
-    Please use this function to update your values dictionary!
-    Assigns a value to a given box. If it updates the board record it.
-    """
-    values[box] = value
-    if len(value) == 1:
-        assignments.append(values.copy())
-    return values
+""" Define functions """
 
 def naked_twins(values):
     """Eliminate values using the naked twins strategy.
@@ -39,14 +28,20 @@ def naked_twins(values):
 
     Returns:
         the values dictionary with the naked twins eliminated from peers.
+        
+    
+    Logic: Identify twins in each unit, replace them and then repeat the logic for other units.
     """
-
-    # Find all instances of naked twins
     
-    two_digits = [x for x in values.keys() if len(values[x]) == 2]
     
-    naked_twins_row = [(i,j) for i in two_digits for j in get_row(i) if i != j and values[i] == values[j]] 
+    """ find all the rows with naked twins"""
+    
+    naked_twins_row = [(i,j) for i in get_two_digit_boxes(values) for j in get_row(i) if i != j and values[i] == values[j]] 
+    
 
+    
+    """Elimintae naked twins from the rows"""
+    
     for i in naked_twins_row:
         for j in get_row(i[0]):
             if values[i[0]] != values[j]:
@@ -54,9 +49,14 @@ def naked_twins(values):
                 values[j] = values[j].replace(values[i[0]][0],'')
                 values[j] = values[j].replace(values[i[0]][1],'')
                 
-    two_digits = [x for x in values.keys() if len(values[x]) == 2]
-    naked_twins_col = [(i,j) for i in two_digits for j in get_col(i) if i != j and values[i] == values[j]]
+    """ we should recalculate the twins since the above elimination should have removed few possibilities
     
+        Find the twins in columns
+    """
+    naked_twins_col = [(i,j) for i in get_two_digit_boxes(values) for j in get_col(i) if i != j and values[i] == values[j]]
+    
+    
+    """ Elimintate the naked twins from columns"""
     for i in naked_twins_col:
         for j in get_col(i[0]):
             if values[i[0]] != values[j]:
@@ -64,9 +64,14 @@ def naked_twins(values):
                 values[j] = values[j].replace(values[i[0]][0],'')
                 values[j] = values[j].replace(values[i[0]][1],'')
     
-    two_digits = [x for x in values.keys() if len(values[x]) == 2]
-    naked_twins_unit = [(i,j) for i in two_digits for j in get_squnit(i) if i != j and values[i] == values[j]]
+    """ we should recalculate the twins since the above elimination should have removed few possibilities
     
+        Find the twins in sq units
+    """    
+    
+    naked_twins_unit = [(i,j) for i in get_two_digit_boxes(values) for j in get_squnit(i) if i != j and values[i] == values[j]]
+    
+    """ Elimintate the naked twins from units"""
     for i in naked_twins_unit:
         for j in get_squnit(i[0]):
             if values[i[0]] != values[j]:
@@ -76,9 +81,7 @@ def naked_twins(values):
     
     return values
     
-def cross(a, b):
-    "Cross product of elements in A and elements in B."
-    return [s+t for s in a for t in b]
+
 
 def grid_values(grid):
     """
@@ -122,6 +125,12 @@ def display(values):
 
 
 def eliminate(values):
+    """
+    if a single value box exists, eliminate the value from its peers.
+    
+    Args: 
+        values(dict): The sudoku in dictionary form
+    """
     
     global rows,cols, boxes, row_units, column_units, square_units, diag_units, unitlist, units, peers
     
@@ -133,6 +142,12 @@ def eliminate(values):
     return values
 
 def only_choice(values):
+    
+    """
+    if a value is the only choice for a particular box, assign that value to the box.
+    Args: 
+        values(dict): The sudoku in dictionary form
+    """
 
     global rows,cols, boxes, row_units, column_units, square_units, diag_units, unitlist, units, peers
     
@@ -150,16 +165,27 @@ def only_choice(values):
     return values
 
 def reduce_puzzle(values):
+    
+    """
+    Function calls each of the functions eliminate, only_choice and naked_twins in that order.
+    Args: 
+        values(dict): The sudoku in dictionary form
+    
+    """
+    
     no_change = False
     
     while not no_change:
-        #print('in while loop')
+        
         string_before = ''.join(values[key] for key in values.keys())
         
+        logging.info("Calling eliminate")
         values = eliminate(values)
         
+        logging.info("Calling Only choice")
         values = only_choice(values)
         
+        logging.info("Calling naked twins")
         values = naked_twins(values)
         
         string_after = ''.join(values[key] for key in values.keys())
@@ -179,8 +205,10 @@ def search(values):
     global rows,cols, boxes, row_units, column_units, square_units, diag_units, unitlist, units, peers
 
     if values is False:
+        logging.info("Solution failed, starting the next one")
         return False ## Failed earlier
     if all(len(values[s]) == 1 for s in boxes): 
+        logging.info("Solution found!")
         return values ## Solved!
     
     v, k = min((len(values[key]),key) for key in values.keys() if len(values[key]) > 1)
@@ -202,7 +230,7 @@ def solve(grid):
     Returns:
         The dictionary representation of the final sudoku grid. False if no solution exists.
     """
-    
+    logging.info("Calling Search")
     return search(grid_values(grid))
 
 if __name__ == '__main__':
@@ -219,9 +247,8 @@ if __name__ == '__main__':
         visualize_assignments(assignments)
 
     except SystemExit:
-        pass
+        logging.error("System exit")
     except:
         print('We could not visualize your board due to a pygame issue. Not a problem! It is not a requirement.')
-
 
 
