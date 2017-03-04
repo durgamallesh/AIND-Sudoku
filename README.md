@@ -4,9 +4,9 @@
 # Question 1 (Naked Twins)
 Q: How do we use constraint propagation to solve the naked twins problem?  
 A: For implementing the naked twins problem, below approach was followed:
-	* identify all the two digit values in the dictionary  
-	* Then find the list of all rows, columns and units with naked twins.
-	* Now, go through all units and remove the twins from their peers.
+* identify all the two digit values in the dictionary  
+* Then find the list of all rows, columns and units with naked twins.
+* Now, go through all units and remove the twins from their peers.
 
    Since, the twins can exist only in those two boxes, considering the constraints we have, these values are eliminated from the peers.
 
